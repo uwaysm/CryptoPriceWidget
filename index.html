@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Price Widget</title>
+    <style>
+        :root {
+            --bg-color: #333;
+            --text-color: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        #drag-region {
+            height: 20px;
+            -webkit-app-region: drag;
+        }
+
+        #content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .ticker {
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .price {
+            font-size: clamp(1rem, 4vw, 2rem);
+            font-weight: bold;
+        }
+
+        .symbol {
+            font-size: clamp(0.8rem, 3vw, 1.5rem);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div id="drag-region"></div>
+    <div id="content">
+        <div class="ticker" data-symbol="BTC">
+            <div class="price">Loading...</div>
+            <div class="symbol">BTC</div>
+        </div>
+        <div class="ticker" data-symbol="ETH">
+            <div class="price">Loading...</div>
+            <div class="symbol">ETH</div>
+        </div>
+    </div>
+    <script>
+        function adjustVisibleTickers() {
+            const content = document.getElementById('content');
+            const tickers = document.querySelectorAll('.ticker');
+            const contentHeight = content.clientHeight;
+            const contentWidth = content.clientWidth;
+            
+            let visibleTickers = 0;
+            let totalHeight = 0;
+            let totalWidth = 0;
+
+            tickers.forEach((ticker, index) => {
+                ticker.style.display = 'none';
+                const tickerRect = ticker.getBoundingClientRect();
+
+                if (contentWidth >= 400) {
+                    // Horizontal layout
+                    if (totalWidth + tickerRect.width <= contentWidth) {
+                        ticker.style.display = 'block';
+                        totalWidth += tickerRect.width;
+                        visibleTickers++;
+                    }
+                } else {
+                    // Vertical layout
+                    if (totalHeight + tickerRect.height <= contentHeight) {
+                        ticker.style.display = 'block';
+                        totalHeight += tickerRect.height;
+                        visibleTickers++;
+                    }
+                }
+            });
+        }
+
+        // Initial adjustment
+        adjustVisibleTickers();
+
+        // Adjust on window resize
+        window.addEventListener('resize', adjustVisibleTickers);
+
+        // Fetch prices for all displayed cryptocurrencies
+        async function fetchPrices() {
+            const tickers = document.querySelectorAll('.ticker');
+            const symbols = Array.from(tickers).map(ticker => ticker.dataset.symbol);
+            const API_URL = `https://api.coingecko.com/api/v3/simple/price?ids=${symbols.join(',')}&vs_currencies=usd`;
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                tickers.forEach(ticker => {
+                    const symbol = ticker.dataset.symbol.toLowerCase();
+                    const price = data[symbol]?.usd;
+                    if (price) {
+                        ticker.querySelector('.price').textContent = `$${price.toFixed(2)}`;
+                    } else {
+                        ticker.querySelector('.price').textContent = 'N/A';
+                    }
+                });
+            } catch (error) {
+                console.error('Error fetching prices:', error);
+                tickers.forEach(ticker => {
+                    ticker.querySelector('.price').textContent = 'Error';
+                });
+            }
+        }
+
+        // Fetch prices initially and then every minute
+        fetchPrices();
+        setInterval(fetchPrices, 60000);
+    </script>
+    <script src="renderer.js"></script>
+</body>
+</html>

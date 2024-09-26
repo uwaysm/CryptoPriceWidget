@@ -1,0 +1,14 @@
+{
+  "name": "crypto-price-widget",
+  "version": "1.0.0",
+  "description": "Cryptocurrency price widget",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "electron": "^13.1.7",
+    "electron-store": "^8.1.0"
+  }
+}
