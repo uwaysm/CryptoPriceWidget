@@ -10,6 +10,14 @@ CryptoPriceWidget is a lightweight, customizable desktop widget that displays re
 - Draggable interface
 - Minimalistic design
 
+## Screenshots
+
+### Widget
+![alt text](images/image-3.png)
+
+### Settings
+![Settings](images/image.png)
+
 ## Installation
 
 1. Clone this repository:
@@ -31,7 +39,9 @@ CryptoPriceWidget is a lightweight, customizable desktop widget that displays re
 
 To start the application, run:
 
+```
 npm start
+```
 
 Right-click on the widget to access the context menu, where you can open the settings or close the application.
 

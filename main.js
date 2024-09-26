@@ -1,19 +1,39 @@
 const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const fs = require('fs');
 
 const store = new Store();
 let mainWindow, settingsWindow;
+let tickers = ['BTC', 'ETH'];
+let customization = {};
+
+function loadCoinList() {
+  try {
+    const filePath = path.join(__dirname, 'coingecko-ids.json');
+    const jsonData = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(jsonData);
+  } catch (error) {
+    console.error('Error reading coingecko-ids.json:', error);
+    return null;
+  }
+}
 
 function createWindow() {
+  if (mainWindow) {
+    mainWindow.focus();
+    return;
+  }
+
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   mainWindow = new BrowserWindow({
     width: 200,
     height: 100,
     x: width - 220,
     y: 20,
-    frame: false,
+    frame: false, // Add this line to remove the window frame
     alwaysOnTop: true,
+    transparent: true, // Add this line to make the background transparent
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -21,14 +41,16 @@ function createWindow() {
     }
   });
 
+  const coinList = loadCoinList();
   mainWindow.loadFile('index.html');
   mainWindow.setAlwaysOnTop(true, 'floating');
   mainWindow.setVisibleOnAllWorkspaces(true);
   
-  // Disable default menu
-  mainWindow.setMenu(null);
+  // Remove this line to allow dragging
+  // mainWindow.setMenu(null);
   
-  // Disable the default context menu
+  // Remove this block to allow dragging
+  /*
   mainWindow.hookWindowMessage(278, function (e) {
     mainWindow.setEnabled(false);
     setTimeout(() => {
@@ -36,14 +58,28 @@ function createWindow() {
     }, 100);
     return true;
   });
-  
+  */
+
   // Remove or comment out the following line to prevent DevTools from opening on startup
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   // Load saved tickers or use defaults
   const savedTickers = store.get('tickers', ['BTC', 'ETH']);
   mainWindow.webContents.on('did-finish-load', () => {
+    const coinList = loadCoinList();
+    if (coinList) {
+      mainWindow.webContents.send('coin-list', coinList);
+    } else {
+      console.error('Failed to load coin list');
+    }
+    const savedTickers = store.get('tickers', ['BTC', 'ETH']);
+    const savedCustomization = store.get('customization', {});
     mainWindow.webContents.send('update-tickers', savedTickers);
+    mainWindow.webContents.send('apply-customization', savedCustomization);
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
 }
 
@@ -63,10 +99,11 @@ function createSettingsWindow() {
     settingsWindow = null;
   });
 
-  // Send saved tickers to the settings window
+  // Send saved tickers and customization to the settings window
   const savedTickers = store.get('tickers', ['BTC', 'ETH']);
+  const savedCustomization = store.get('customization', {});
   settingsWindow.webContents.on('did-finish-load', () => {
-    settingsWindow.webContents.send('load-tickers', savedTickers);
+    settingsWindow.webContents.send('load-settings', { tickers: savedTickers, customization: savedCustomization });
   });
 }
 
@@ -110,6 +147,12 @@ ipcMain.on('show-context-menu', (event) => {
         }
       }
     },
+    {
+      label: 'Open DevTools',
+      click: () => {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+      }
+    },
     { type: 'separator' },
     { role: 'minimize' },
     { role: 'close' }
@@ -120,7 +163,55 @@ ipcMain.on('show-context-menu', (event) => {
 
 ipcMain.on('update-tickers', (event, newTickers) => {
   store.set('tickers', newTickers);
+  tickers = newTickers;
   if (mainWindow) {
     mainWindow.webContents.send('update-tickers', newTickers);
   }
 });
+
+ipcMain.on('update-customization', (event, newCustomization) => {
+  store.set('customization', newCustomization);
+  customization = newCustomization;
+  if (mainWindow) {
+    mainWindow.webContents.send('apply-customization', customization);
+  }
+});
+
+ipcMain.on('settings-updated', () => {
+  if (mainWindow) {
+    const savedTickers = store.get('tickers', ['BTC', 'ETH']);
+    const savedCustomization = store.get('customization', {});
+    mainWindow.webContents.send('update-tickers', savedTickers);
+    mainWindow.webContents.send('apply-customization', savedCustomization);
+  }
+});
+
+// Add this new IPC handler
+ipcMain.on('get-initial-customization', (event) => {
+  const initialCustomization = store.get('customization', {});
+  event.reply('initial-customization', initialCustomization);
+});
+
+function saveSettings() {
+  const settings = { tickers, customization };
+  fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings));
+}
+
+function loadSettings() {
+  try {
+    const settingsFile = fs.readFileSync(path.join(__dirname, 'settings.json'), 'utf8');
+    const settings = JSON.parse(settingsFile);
+    tickers = settings.tickers || ['BTC', 'ETH'];
+    customization = settings.customization || {};
+  } catch (error) {
+    console.error('Error loading settings:', error);
+  }
+}
+
+// Call loadSettings() when the app starts
+app.on('ready', () => {
+  loadSettings();
+  createWindow();
+});
+
+// ... (other existing code)

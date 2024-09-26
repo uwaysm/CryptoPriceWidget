@@ -3,35 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings</title>
+  <title>Crypto Widget Settings</title>
   <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2ecc71;
+      --background-color: #f5f7fa;
+      --text-color: #34495e;
+      --border-color: #bdc3c7;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      padding: 2rem;
     }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .settings-group {
+      margin-bottom: 2rem;
+    }
+
+    h3 {
+      color: var(--secondary-color);
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
     #ticker-list {
-      margin-bottom: 10px;
+      margin-bottom: 1rem;
     }
+
     .ticker-item {
       display: flex;
       align-items: center;
-      margin-bottom: 5px;
+      margin-bottom: 0.5rem;
+      background-color: #ecf0f1;
+      padding: 0.5rem;
+      border-radius: 4px;
     }
+
+    .ticker-item span {
+      flex-grow: 1;
+    }
+
     .ticker-item button {
-      margin-left: 10px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
     }
+
+    .ticker-item button:hover {
+      background-color: #c0392b;
+    }
+
+    #new-ticker {
+      width: calc(100% - 110px);
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+
     #add-ticker {
-      margin-top: 10px;
+      width: 100px;
+      padding: 0.5rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #add-ticker:hover {
+      background-color: #2980b9;
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    select, input[type="range"], input[type="color"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: #fff;
+    }
+
+    input[type="color"] {
+      height: 40px;
+    }
+
+    #save {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+    }
+
+    #save:hover {
+      background-color: #27ae60;
+    }
+
+    .range-value {
+      display: inline-block;
+      width: 30px;
+      text-align: right;
     }
   </style>
 </head>
 <body>
-  <h2>Settings</h2>
-  <div id="ticker-list"></div>
-  <input type="text" id="new-ticker" placeholder="Enter ticker symbol">
-  <button id="add-ticker">Add Ticker</button>
-  <button id="save">Save</button>
-  <script src="settings.js"></script>
+  <div class="container">
+    <h2>Crypto Widget Settings</h2>
+    
+    <div class="settings-group">
+      <h3>Tickers</h3>
+      <div id="ticker-list"></div>
+      <input type="text" id="new-ticker" placeholder="Enter ticker symbol">
+      <button id="add-ticker">Add Ticker</button>
+    </div>
+    
+    <div class="settings-group">
+      <h3>Customization</h3>
+      <label for="font-family">Font:</label>
+      <select id="font-family">
+        <option value="Arial">Arial</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="sans-serif">Sans-serif</option>
+        <option value="monospace">Monospace</option>
+      </select>
+      
+      <label for="ticker-size">Ticker Size: <span id="ticker-size-value" class="range-value"></span></label>
+      <input type="range" id="ticker-size" min="10" max="30" value="20">
+      
+      <label for="price-size">Price Size: <span id="price-size-value" class="range-value"></span></label>
+      <input type="range" id="price-size" min="10" max="30" value="20">
+      
+      <label for="ticker-color">Ticker Color:</label>
+      <input type="color" id="ticker-color" value="#ffd700">
+      
+      <label for="price-color">Price Color:</label>
+      <input type="color" id="price-color" value="#90ee90">
+      
+      <label for="bg-color">Background Color:</label>
+      <input type="color" id="bg-color" value="#333333">
+    </div>
+    
+    <button id="save">Save Settings</button>
+  </div>  <script src="settings.js"></script>
+  <script>
+    // Display current values for range inputs
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+      const valueSpan = document.getElementById(`${input.id}-value`);
+      valueSpan.textContent = input.value;
+      input.addEventListener('input', () => {
+        valueSpan.textContent = input.value;
+      });
+    });
+  </script>
 </body>
 </html>

@@ -38,26 +38,50 @@
         #content {
             flex: 1;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             justify-content: center;
             align-items: center;
             padding: 10px;
         }
 
         .ticker {
-            text-align: center;
-            margin: 10px 0;
-            display: none;
+            display: flex;
+            align-items: baseline;
+            margin: 0 5px;
+            font-size: clamp(1rem, 4vw, 2rem);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px; 
+            transition: all 0.3s ease; 
         }
 
-        .price {
-            font-size: clamp(1rem, 4vw, 2rem);
-            font-weight: bold;
+        .ticker:hover {
+            background-color: rgba(255, 255, 255, 0.2); 
+            transform: scale(1.05); 
         }
 
         .symbol {
-            font-size: clamp(0.8rem, 3vw, 1.5rem);
-            opacity: 0.7;
+            font-weight: bold;
+            color: #ffd700; 
+            margin-right: 5px;
+        }
+
+        .price {
+            color: #90ee90; 
+        }
+
+        @media (max-width: 600px) {
+            #content {
+                flex-direction: column;
+            }
+            .ticker {
+                margin: 5px 0;
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -65,12 +89,12 @@
     <div id="drag-region"></div>
     <div id="content">
         <div class="ticker" data-symbol="BTC">
-            <div class="price">Loading...</div>
-            <div class="symbol">BTC</div>
+            <span class="symbol">BTC:</span>
+            <span class="price">Loading...</span>
         </div>
         <div class="ticker" data-symbol="ETH">
-            <div class="price">Loading...</div>
-            <div class="symbol">ETH</div>
+            <span class="symbol">ETH:</span>
+            <span class="price">Loading...</span>
         </div>
     </div>
     <script>
