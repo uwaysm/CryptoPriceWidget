@@ -2,6 +2,7 @@ const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const fs = require('fs');
+const axios = require('axios');
 
 const store = new Store();
 let mainWindow, settingsWindow;
@@ -213,5 +214,43 @@ app.on('ready', () => {
   loadSettings();
   createWindow();
 });
+
+async function fetchPrices(tickers) {
+  const prices = {};
+  const coinGeckoTickers = tickers.filter(t => !t.startsWith('token:'));
+  const tokenAddresses = tickers.filter(t => t.startsWith('token:')).map(t => t.split(':')[1]);
+
+  if (coinGeckoTickers.length > 0) {
+    const coinGeckoPrices = await fetchCoinGeckoPrices(coinGeckoTickers);
+    Object.assign(prices, coinGeckoPrices);
+  }
+
+  if (tokenAddresses.length > 0) {
+    const dexScreenerPrices = await fetchDexScreenerPrices(tokenAddresses);
+    Object.assign(prices, dexScreenerPrices);
+  }
+
+  return prices;
+}
+
+async function fetchCoinGeckoPrices(tickers) {
+  // ... existing CoinGecko fetching logic ...
+}
+
+async function fetchDexScreenerPrices(tokenAddresses) {
+  const prices = {};
+  try {
+    const response = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddresses.join(',')}`);
+    response.data.pairs.forEach(pair => {
+      prices[`token:${pair.baseToken.address}`] = {
+        symbol: pair.baseToken.symbol,
+        price: parseFloat(pair.priceUsd)
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching DEXScreener prices:', error);
+  }
+  return prices;
+}
 
 // ... (other existing code)

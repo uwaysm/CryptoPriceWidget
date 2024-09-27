@@ -24,6 +24,16 @@ async function fetchValidTickers() {
 	}
 }
 
+async function isValidTokenAddress(address) {
+	try {
+		const response = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
+		return response.data.pairs && response.data.pairs.length > 0;
+	} catch (error) {
+		console.error('Error validating token address:', error);
+		return false;
+	}
+}
+
 function renderTickers() {
 	const tickerList = document.getElementById('ticker-list');
 	tickerList.innerHTML = '';
@@ -69,19 +79,38 @@ function saveSettings() {
 	console.log('Saved settings - Tickers:', tickers, 'Customization:', customization);
 }
 
-document.getElementById('add-ticker').addEventListener('click', () => {
-	const newTicker = document.getElementById('new-ticker').value.trim().toUpperCase();
-	if (!isValidTickersLoaded) {
-		alert('Please wait, still loading valid tickers...');
+document.getElementById('add-ticker').addEventListener('click', async () => {
+	const newInput = document.getElementById('new-ticker').value.trim();
+	const inputType = document.getElementById('input-type').value;
+
+	if (!newInput) {
+		alert('Please enter a ticker symbol or token address.');
 		return;
 	}
-	if (newTicker && !tickers.includes(newTicker) && validTickers[newTicker]) {
-		tickers.push(newTicker);
-		renderTickers();
-		document.getElementById('new-ticker').value = '';
-		saveSettings(); // Save both tickers and customization
-	} else {
-		alert('Invalid or duplicate ticker. Please enter a valid, unique ticker symbol.');
+
+	if (inputType === 'ticker') {
+		const newTicker = newInput.toUpperCase();
+		if (!isValidTickersLoaded) {
+			alert('Please wait, still loading valid tickers...');
+			return;
+		}
+		if (newTicker && !tickers.includes(newTicker) && validTickers[newTicker]) {
+			tickers.push(newTicker);
+			renderTickers();
+			document.getElementById('new-ticker').value = '';
+			saveSettings();
+		} else {
+			alert('Invalid or duplicate ticker. Please enter a valid, unique ticker symbol.');
+		}
+	} else if (inputType === 'token') {
+		if (await isValidTokenAddress(newInput)) {
+			tickers.push(`token:${newInput}`);
+			renderTickers();
+			document.getElementById('new-ticker').value = '';
+			saveSettings();
+		} else {
+			alert('Invalid token address. Please enter a valid token address.');
+		}
 	}
 });
 

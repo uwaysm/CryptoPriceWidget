@@ -153,10 +153,14 @@
     <h2>Crypto Widget Settings</h2>
     
     <div class="settings-group">
-      <h3>Tickers</h3>
+      <h3>Tickers and Tokens</h3>
       <div id="ticker-list"></div>
-      <input type="text" id="new-ticker" placeholder="Enter ticker symbol">
-      <button id="add-ticker">Add Ticker</button>
+      <input type="text" id="new-ticker" placeholder="Enter ticker symbol or token address">
+      <select id="input-type">
+        <option value="ticker">Ticker</option>
+        <option value="token">Token Address</option>
+      </select>
+      <button id="add-ticker">Add</button>
     </div>
     
     <div class="settings-group">

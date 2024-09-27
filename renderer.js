@@ -57,23 +57,58 @@ async function fetchPrices() {
     return;
   }
   try {
-    const ids = tickers.map(ticker => {
-      const id = tickerToId[ticker];
-      console.log(`Mapping ${ticker} to ID: ${id}`);
-      return id;
-    }).filter(id => id);
-    console.log('Fetching prices for IDs:', ids);
-    if (ids.length === 0) {
-      console.log('No valid tickers to fetch');
-      return;
-    }
-    const API_URL = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd`;
-    console.log('Fetching from URL:', API_URL);
-    const response = await fetchWithRetry(API_URL);
-    const data = response.data;
-    console.log('Received data:', data);
+    const coinGeckoTickers = tickers.filter(t => !t.startsWith('token:'));
+    const tokenAddresses = tickers.filter(t => t.startsWith('token:')).map(t => t.split(':')[1]);
 
-    updatePriceDisplay(data);
+    console.log('CoinGecko Tickers:', coinGeckoTickers);
+    console.log('Token Addresses:', tokenAddresses);
+
+    const allPrices = {};
+
+    if (coinGeckoTickers.length > 0) {
+      const ids = coinGeckoTickers.map(ticker => {
+        const id = tickerToId[ticker];
+        console.log(`Mapping ${ticker} to ID: ${id}`);
+        return id;
+      }).filter(id => id);
+      
+      if (ids.length > 0) {
+        const API_URL = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd`;
+        console.log('Fetching CoinGecko prices from URL:', API_URL);
+        const response = await fetchWithRetry(API_URL);
+        const data = response.data;
+        console.log('Received CoinGecko data:', data);
+        
+        // Convert CoinGecko data to the same format as DEXScreener data
+        Object.entries(data).forEach(([id, priceData]) => {
+          const ticker = Object.keys(tickerToId).find(key => tickerToId[key] === id);
+          if (ticker) {
+            allPrices[ticker] = {
+              symbol: ticker,
+              price: priceData.usd
+            };
+          }
+        });
+      }
+    }
+
+    if (tokenAddresses.length > 0) {
+      const DEX_API_URL = `https://api.dexscreener.com/latest/dex/tokens/${tokenAddresses.join(',')}`;
+      console.log('Fetching DEXScreener prices from URL:', DEX_API_URL);
+      const dexResponse = await fetchWithRetry(DEX_API_URL);
+      const dexData = dexResponse.data;
+      console.log('Received DEXScreener data:', dexData);
+      
+      dexData.pairs.forEach(pair => {
+        allPrices[`token:${pair.baseToken.address}`] = {
+          symbol: pair.baseToken.symbol,
+          price: parseFloat(pair.priceUsd)
+        };
+      });
+    }
+
+    console.log('All processed prices:', allPrices);
+    updatePriceDisplay(allPrices);
   } catch (error) {
     console.error('Error fetching prices:', error);
     notifyUser('Error updating prices. Will try again soon.');
@@ -85,14 +120,13 @@ function updatePriceDisplay(data) {
   const tickerElements = document.querySelectorAll('.ticker');
   tickerElements.forEach(ticker => {
     const symbol = ticker.dataset.symbol;
-    const id = tickerToId[symbol];
-    console.log(`Processing ticker: ${symbol}, ID: ${id}`);
-    const price = data[id]?.usd;
+    const price = data[symbol];
     if (price) {
-      console.log(`Updating price for ${symbol}: $${price.toFixed(2)}`);
-      ticker.querySelector('.price').textContent = `$${price.toFixed(2)}`;
+      console.log(`Updating price for ${symbol}: $${price.price.toFixed(2)}`);
+      ticker.querySelector('.symbol').textContent = `${price.symbol}:`;
+      ticker.querySelector('.price').textContent = `$${price.price.toFixed(2)}`;
     } else {
-      console.log(`No price found for ${symbol} (ID: ${id})`);
+      console.log(`No price found for ${symbol}`);
       ticker.querySelector('.price').textContent = 'N/A';
     }
   });
@@ -110,7 +144,7 @@ function updateTickerDisplay() {
     tickerElement.className = 'ticker';
     tickerElement.dataset.symbol = ticker;
     tickerElement.innerHTML = `
-      <span class="symbol">${ticker}:</span>
+      <span class="symbol">${ticker.startsWith('token:') ? 'Loading...' : ticker}:</span>
       <span class="price">Loading...</span>
     `;
     content.appendChild(tickerElement);
